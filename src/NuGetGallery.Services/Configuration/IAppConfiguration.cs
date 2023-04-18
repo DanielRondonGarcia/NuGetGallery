@@ -171,6 +171,11 @@ namespace NuGetGallery.Configuration
         string StorageType { get; set; }
 
         /// <summary>
+        /// Gets the allow new user registration bool
+        /// </summary>
+        bool AllowNewUserRegistration { get; set; }
+
+        /// <summary>
         /// Gets the URI of the SMTP host to use. Or null if SMTP is not being used. Use <see cref="NuGetGallery.Configuration.SmtpUri"/> to parse it
         /// </summary>
         Uri SmtpUri { get; set; }

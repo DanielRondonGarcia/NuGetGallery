@@ -145,6 +145,12 @@ namespace NuGetGallery.Configuration
         public string StorageType { get; set; }
 
         /// <summary>
+        /// Gets the allow new user registration bool
+        /// </summary>
+        [DefaultValue(NuGetGallery.Configuration.StorageType.NotSpecified)]
+        public bool AllowNewUserRegistration { get; set; }
+
+        /// <summary>
         /// Gets the URI of the SMTP host to use. Or null if SMTP is not being used
         /// </summary>
         [DefaultValue(null)]

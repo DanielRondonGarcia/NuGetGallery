@@ -266,6 +266,12 @@ namespace NuGetGallery
         [ValidateAntiForgeryToken]
         public virtual async Task<ActionResult> Register(LogOnViewModel model, string returnUrl, bool linkingAccount)
         {
+            // Check if new user registration is allowed
+            if (!NuGetContext.Config.Current.AllowNewUserRegistration)
+            {
+                TempData["Message"] = "No está permitido los registros de nuevos usuarios";
+                return SafeRedirect(returnUrl);
+            }
             // I think it should be obvious why we don't want the current URL to be the return URL here ;)
             ViewData[GalleryConstants.ReturnUrlViewDataKey] = returnUrl;
 
