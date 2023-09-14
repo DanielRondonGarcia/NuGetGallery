@@ -3,7 +3,10 @@
 
 @model DisplayPackageViewModel
 @{
-    ViewBag.Title = Model.Id + " " + Model.Version;
+    if (Model.ShowDetailsAndLinks && !Model.Deleted)
+    {
+        ViewBag.Title = Model.Id + " " + Model.Version;
+    }
     ViewBag.Tab = "Packages";
     ViewBag.BlockSearchEngineIndexing = Model.BlockSearchEngineIndexing;
 
@@ -156,28 +159,34 @@
 }
 
 @section Meta {
-    <meta name="description" content="@Model.ShortDescription">
+    @if (Model.ShowDetailsAndLinks && !Model.Deleted)
+    {
+        <meta name="description" content="@Model.ShortDescription">
+    }
 }
 
 @section SocialMeta {
-    @if (!String.IsNullOrWhiteSpace(ViewBag.FacebookAppID))
+    @if (Model.ShowDetailsAndLinks)
     {
-        <meta property="fb:app_id" content="@ViewBag.FacebookAppID" />
-    }
+        if (!String.IsNullOrWhiteSpace(ViewBag.FacebookAppID))
+        {
+            <meta property="fb:app_id" content="@ViewBag.FacebookAppID" />
+        }
 
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@("@nuget")">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:site" content="@("@nuget")">
 
-    <meta property="og:title" content="@Model.Id @Model.Version" />
-    <meta property="og:type" content="nugetgallery:package" />
-    <meta property="og:url" content="@absolutePackageUrl" />
-    <meta property="og:description" content="@Model.Description" />
-    <meta property="og:determiner" content="a" />
-    <meta property="og:image" content="@(PackageHelper.ShouldRenderUrl(Model.IconUrl) ? Model.IconUrl : Url.Absolute("~/Content/gallery/img/default-package-icon-256x256.png"))" />
+        <meta property="og:title" content="@Model.Id @Model.Version" />
+        <meta property="og:type" content="nugetgallery:package" />
+        <meta property="og:url" content="@absolutePackageUrl" />
+        <meta property="og:description" content="@Model.Description" />
+        <meta property="og:determiner" content="a" />
+        <meta property="og:image" content="@(PackageHelper.ShouldRenderUrl(Model.IconUrl) ? Model.IconUrl : Url.Absolute("~/Content/gallery/img/default-package-icon-256x256.png"))" />
 
-    @if (Model.IsAtomFeedEnabled)
-    {
-        <link rel="alternate" type="application/atom+xml" title="Subscribe to @Model.Id updates" href="@Url.PackageAtomFeed(Model.Id)" />
+        if (Model.IsAtomFeedEnabled)
+        {
+            <link rel="alternate" type="application/atom+xml" title="Subscribe to @Model.Id updates" href="@Url.PackageAtomFeed(Model.Id)" />
+        }
     }
 }
 
@@ -252,36 +261,49 @@
     <div class="row">
         <div class="col-sm-9 package-details-main">
             <div class="package-header">
-                <div class="package-title">
-                    <h1>
-                        <span class="pull-left">
-                            <img class="package-icon img-responsive" aria-hidden="true" alt=""
-                                    src="@(PackageHelper.ShouldRenderUrl(Model.IconUrl) && Model.ShowDetailsAndLinks ? Model.IconUrl : Url.Absolute("~/Content/gallery/img/default-package-icon.svg"))"
-                                    @ViewHelpers.ImageFallback(Url.Absolute("~/Content/gallery/img/default-package-icon-256x256.png")) />
-                        </span>
-                        <span class="title">
-                            @Html.BreakWord(Model.Id)
-                        </span>
-                        <span class="version-title">
-                            @Model.Version
-                        </span>
-                    </h1>
-                    @if (Model.IsVerified.HasValue && Model.IsVerified.Value)
-                    {
-                        <span class="prefix-reserve-title">
-                            <img class="reserved-indicator"
-                                    src="~/Content/gallery/img/reserved-indicator.svg"
-                                    @ViewHelpers.ImageFallback(Url.Absolute("~/Content/gallery/img/reserved-indicator-25x25.png"))
-                                    data-content="@Strings.ReservedNamespace_ReservedIndicatorTooltip" tabindex="0"
-                                    alt="@Strings.ReservedNamespace_ReservedIndicatorTooltip"/>
-                            <a href="https://docs.microsoft.com/nuget/nuget-org/id-prefix-reservation" class="prefix-reserve-label">
-                                Prefix Reserved
-                            </a>
-                        </span>
-                    }
-                </div>
+                @if (Model.ShowDetailsAndLinks)
+                {
+                    <div class="package-title">
+                        <h1>
+                            <span class="pull-left">
+                                <img class="package-icon img-responsive" aria-hidden="true" alt=""
+                                     src="@(PackageHelper.ShouldRenderUrl(Model.IconUrl) && Model.ShowDetailsAndLinks ? Model.IconUrl : Url.Absolute("~/Content/gallery/img/default-package-icon.svg"))"
+                                     @ViewHelpers.ImageFallback(Url.Absolute("~/Content/gallery/img/default-package-icon-256x256.png")) />
+                            </span>
+                            <span class="title">
+                                @Html.BreakWord(Model.Id)
+                            </span>
+                            <span class="version-title">
+                                @Model.Version
+                            </span>
+                        </h1>
 
-                @if (Model.CanDisplayTargetFrameworks())
+                        @if (Model.IsVerified.HasValue && Model.IsVerified.Value)
+                        {
+                            <span class="prefix-reserve-title">
+                                <img class="reserved-indicator"
+                                     src="~/Content/gallery/img/reserved-indicator.svg"
+                                     @ViewHelpers.ImageFallback(Url.Absolute("~/Content/gallery/img/reserved-indicator-25x25.png"))
+                                     data-content="@Strings.ReservedNamespace_ReservedIndicatorTooltip" tabindex="0"
+                                     alt="@Strings.ReservedNamespace_ReservedIndicatorTooltip" />
+                                <a href="https://docs.microsoft.com/nuget/nuget-org/id-prefix-reservation" class="prefix-reserve-label">
+                                    Prefix Reserved
+                                </a>
+                            </span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="content-hidden-notice">
+                        @ViewHelpers.AlertDanger(
+                            @<text>
+                                This package's content is hidden as it violates our <a href="https://www.nuget.org/policies/terms" title="Terms of Use">Terms of Use</a>.
+                            </text>)
+                    </div>
+                }
+
+                @if (Model.CanDisplayTargetFrameworks() && Model.ShowDetailsAndLinks)
                 {
                     @Html.Partial("_SupportedFrameworksBadges", Model.PackageFrameworkCompatibility.Badges);
                 }
@@ -416,7 +438,7 @@
                     )
                 }
 
-                @if (Model.HasEmbeddedIcon && Model.IsIndexed.HasValue && !Model.IsIndexed.Value && (Model.Available || Model.Validating))
+                @if (Model.HasEmbeddedIcon && Model.ShowDetailsAndLinks && Model.IsIndexed.HasValue && !Model.IsIndexed.Value && (Model.Available || Model.Validating))
                 {
                     @ViewHelpers.AlertWarning(
                         @<text>
@@ -466,7 +488,7 @@
                     }
                 }
 
-                @if (!Model.Listed && Model.Available)
+                @if (!Model.Listed && Model.Available && Model.ShowDetailsAndLinks)
                 {
                     if (Model.CanDisplayPrivateMetadata)
                     {
@@ -489,12 +511,12 @@
                     }
                 }
 
-                @if (!Model.Deleted && !String.IsNullOrEmpty(Model.MinClientVersion))
+                @if (!Model.Deleted && Model.ShowDetailsAndLinks && !String.IsNullOrEmpty(Model.MinClientVersion))
                 {
                     <p>Requires NuGet @Model.MinClientVersion or higher.</p>
                 }
 
-                @if (Model.Available)
+                @if (Model.Available && Model.ShowDetailsAndLinks)
                 {
                     <div class="install-tabs">
                         <ul class="nav nav-tabs" role="tablist">
@@ -522,7 +544,7 @@
             <div class="body-tabs">
                 <ul class="nav nav-tabs" role="tablist">
                     @{ string activeBodyTab = null; }
-                    @if (!Model.Deleted)
+                    @if (!Model.Deleted && Model.ShowDetailsAndLinks)
                     {
                         activeBodyTab = activeBodyTab ?? "readme";
                         <li role="presentation" class="active" id="show-readme-container">
@@ -532,7 +554,6 @@
                                id="readme-body-tab"
                                class="body-@(Model.CanDisplayReadmeWarning && Model.CanDisplayPrivateMetadata? "warning-" : "")tab"
                                aria-controls="readme-tab"
-                               aria-expanded="@(activeBodyTab == "readme" ? "true" : "false")"
                                aria-selected="@(activeBodyTab == "readme" ? "true" : "false")"
                                tabindex="@(activeBodyTab == "readme" ? "0" : "-1")">
                                 @if (Model.CanDisplayReadmeWarning && Model.CanDisplayPrivateMetadata)
@@ -557,7 +578,6 @@
                                 id="supportedframeworks-body-tab"
                                 class="body-tab"
                                 aria-controls="supportedframeworks-tab"
-                                aria-expanded="@(activeBodyTab == "supportedframeworks" ? "true" : "false")"
                                 aria-selected="@(activeBodyTab == "supportedframeworks" ? "true" : "false")"
                                 tabindex="@(activeBodyTab == "supportedframeworks" ? "0" : "-1")">
                                 <i class="ms-Icon ms-Icon--Package" aria-hidden="true"></i>
@@ -574,7 +594,6 @@
                                id="dependencies-body-tab"
                                class="body-tab"
                                aria-controls="dependencies-tab"
-                               aria-expanded="@(activeBodyTab == "dependencies" ? "true" : "false")"
                                aria-selected="@(activeBodyTab == "dependencies" ? "true" : "false")"
                                tabindex="@(activeBodyTab == "dependencies" ? "0" : "-1")">
                                 <i class="ms-Icon ms-Icon--Packages" aria-hidden="true"></i>
@@ -583,7 +602,7 @@
                         </li>
                     }
 
-                    @if (!Model.IsDotnetToolPackageType && (Model.IsGitHubUsageEnabled || Model.IsPackageDependentsEnabled))
+                    @if (!Model.IsDotnetToolPackageType && Model.ShowDetailsAndLinks && !Model.Deleted && (Model.IsGitHubUsageEnabled || Model.IsPackageDependentsEnabled))
                     {
                         activeBodyTab = activeBodyTab ?? "usedby";
                         <li role="presentation">
@@ -593,7 +612,6 @@
                                id="usedby-body-tab"
                                class="body-tab"
                                aria-controls="usedby-tab"
-                               aria-expanded="@(activeBodyTab == "usedby" ? "true" : "false")"
                                aria-selected="@(activeBodyTab == "usedby" ? "true" : "false")"
                                tabindex="@(activeBodyTab == "usedby" ? "0" : "-1")">
                                 <i class="ms-Icon ms-Icon--BranchFork2" aria-hidden="true"></i>
@@ -610,7 +628,6 @@
                            id="versions-body-tab"
                            class="body-tab"
                            aria-controls="versions-tab"
-                           aria-expanded="@(activeBodyTab == "versions" ? "true" : "false")"
                            aria-selected="@(activeBodyTab == "versions" ? "true" : "false")"
                            tabindex="@(activeBodyTab == "versions" ? "0" : "-1")">
                             <i class="ms-Icon ms-Icon--Stopwatch" aria-hidden="true"></i>
@@ -618,7 +635,7 @@
                         </a>
                     </li>
 
-                    @if (!String.IsNullOrWhiteSpace(Model.ReleaseNotes))
+                    @if (!String.IsNullOrWhiteSpace(Model.ReleaseNotes) && Model.ShowDetailsAndLinks)
                     {
                         activeBodyTab = activeBodyTab ?? "releasenotes";
                         <li role="presentation">
@@ -628,7 +645,6 @@
                                id="release-body-tab"
                                class="body-tab"
                                aria-controls="releasenotes-tab"
-                               aria-expanded="@(activeBodyTab == "releasenotes" ? "true" : "false")"
                                aria-selected="@(activeBodyTab == "releasenotes" ? "true" : "false")"
                                tabindex="@(activeBodyTab == "releasenotes" ? "0" : "-1")">
                                 <i class="ms-Icon ms-Icon--ReadingMode" aria-hidden="true"></i>
@@ -640,17 +656,10 @@
             </div>
 
             <div class="tab-content body-tab-content">
-                @if (!Model.Deleted)
+                @if (!Model.Deleted && Model.ShowDetailsAndLinks)
                 {
-                    <div role="tabpanel" class="tab-pane @(activeBodyTab == "readme" ? "active" : "")" id="readme-tab" aria-label="Readme tab content">
-                        @if (!Model.ShowDetailsAndLinks)
-                        {
-                            @ViewHelpers.AlertWarning(
-                                @<text>
-                                    This package's content is hidden as it violates our <a href="https://www.nuget.org/policies/terms" title="Terms of use">Terms of use</a>.
-                                </text>)
-                        }
-                        else if ((Model.Validating || Model.FailedValidation) && Model.HasEmbeddedReadmeFile)
+                    <div role="tabpanel" class="tab-pane @(activeBodyTab == "readme" ? "active" : "")" id="readme-tab"  aria-label="Readme tab content">
+                        @if ((Model.Validating || Model.FailedValidation) && Model.HasEmbeddedReadmeFile)
                         {
                             @ViewHelpers.AlertWarning(
                                 @<text>
@@ -706,7 +715,7 @@
                     }
 
                     <div role="tabpanel" class="tab-pane @(activeBodyTab == "dependencies" ? "active" : "")" id="dependencies-tab" aria-label="Dependencies tab content">
-                        @if (!Model.Deleted)
+                        @if (!Model.Deleted && Model.ShowDetailsAndLinks)
                         {
                             if (Model.Dependencies.DependencySets == null)
                             {
@@ -897,7 +906,7 @@
                             <tbody class="no-border">
                                 @foreach (var packageVersion in Model.PackageVersions)
                                 {
-                                    if ((packageVersion.Available && packageVersion.Listed)
+                                    if ((packageVersion.Available && packageVersion.Listed && Model.ShowDetailsAndLinks)
                                         || (!packageVersion.Deleted && Model.CanDisplayPrivateMetadata))
                                     {
                                         <tr class="@(packageVersion.IsCurrent(Model) ? "bg-info" : null)">
@@ -994,33 +1003,36 @@
         </div>
 
         <aside aria-label="Package details info" class="col-sm-3 package-details-info">
-            <div class="sidebar-section">
-                <div class="row sidebar-headers">
-                    <div class="col-md-6">
-                        Downloads
+            @if (Model.ShowDetailsAndLinks && !Model.Deleted)
+            {
+                <div class="sidebar-section">
+                    <div class="row sidebar-headers">
+                        <div class="col-md-6">
+                            Downloads
+                        </div>
+                        <div class="col-md-6 title-links">
+                            @if (StatisticsHelper.IsStatisticsPageAvailable)
+                            {
+                                <a href="@Url.StatisticsPackageDownloadByVersion(Model.Id)" title="Package Statistics">Full stats →</a>
+                            }
+                        </div>
                     </div>
-                    <div class="col-md-6 title-links">
-                        @if (StatisticsHelper.IsStatisticsPageAvailable)
-                        {
-                            <a href="@Url.StatisticsPackageDownloadByVersion(Model.Id)" title="Package Statistics">Full stats →</a>
-                        }
+                    <div class="download-info">
+                        <div class="download-info-row">
+                            <span class="download-info-header">Total</span>
+                            <span class="download-info-content">@Model.TotalDownloadCount.ToKiloFormat()</span>
+                        </div>
+                        <div class="download-info-row">
+                            <span class="download-info-header">Current version</span>
+                            <span class="download-info-content">@Model.DownloadCount.ToKiloFormat()</span>
+                        </div>
+                        <div class="download-info-row">
+                            <span class="download-info-header">Per day average</span>
+                            <span class="download-info-content">@Model.DownloadsPerDay.ToKiloFormat()</span>
+                        </div>
                     </div>
                 </div>
-                <div class="download-info">
-                    <div class="download-info-row">
-                        <span class="download-info-header">Total</span>
-                        <span class="download-info-content">@Model.TotalDownloadCount.ToKiloFormat()</span>
-                    </div>
-                    <div class="download-info-row">
-                        <span class="download-info-header">Current version</span>
-                        <span class="download-info-content">@Model.DownloadCount.ToKiloFormat()</span>
-                    </div>
-                    <div class="download-info-row">
-                        <span class="download-info-header">Per day average</span>
-                        <span class="download-info-content">@Model.DownloadsPerDay.ToKiloFormat()</span>
-                    </div>
-                </div>
-            </div>
+            }
 
             <div class="sidebar-section">
                 <div class="sidebar-headers">About</div>
@@ -1093,7 +1105,7 @@
                         }
                     }
 
-                    @if (Model.Available)
+                    @if (Model.Available && Model.ShowDetailsAndLinks)
                     {
                         <li>
                             <i class="ms-Icon ms-Icon--CloudDownload" aria-hidden="true"></i>
@@ -1110,7 +1122,7 @@
                         }
                     }
 
-                    @if (Model.CanDisplayNuGetPackageExplorerLink())
+                    @if (Model.CanDisplayNuGetPackageExplorerLink() && Model.ShowDetailsAndLinks)
                     {
                         var disclaimer = "nuget.info is a 3rd party website, not controlled by Microsoft. This link is made available to you per the NuGet Terms of Use.";
 
@@ -1124,7 +1136,7 @@
                         </li>
                     }
 
-                    @if (Model.CanDisplayFuGetLink())
+                    @if (Model.CanDisplayFuGetLink() && Model.ShowDetailsAndLinks)
                     {
                         var disclaimer = "fuget.org is a 3rd party website, not controlled by Microsoft. This link is made available to you per the NuGet Terms of Use.";
 
@@ -1141,7 +1153,7 @@
                         </li>
                     }
 
-                    @if (!Model.CanReportAsOwner && Model.Available)
+                    @if (!Model.CanReportAsOwner && Model.Available && Model.ShowDetailsAndLinks)
                     {
                         <li class="report-link">
                             <i class="ms-Icon ms-Icon--Flag" aria-hidden="true"></i>
@@ -1292,7 +1304,7 @@
 
             </div>
                 
-            @if (!Model.Deleted)
+            @if (!Model.Deleted && Model.ShowDetailsAndLinks)
             {
 
                 if (Model.Tags.AnySafe())
@@ -1311,7 +1323,7 @@
                 }
             }
 
-            @if (Model.Available)
+            @if (Model.Available && Model.ShowDetailsAndLinks)
             {
                 var encodedText = Url.Encode(string.Format("Check out {0} on #NuGet.", Model.Id));
                 <p class="share-buttons">

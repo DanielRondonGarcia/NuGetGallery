@@ -25,7 +25,6 @@ using NuGetGallery.Auditing.AuditedEntities;
 using NuGetGallery.Authentication;
 using NuGetGallery.Configuration;
 using NuGetGallery.Filters;
-using NuGetGallery.Helpers;
 using NuGetGallery.Infrastructure.Authentication;
 using NuGetGallery.Infrastructure.Mail.Messages;
 using NuGetGallery.Packaging;
@@ -979,6 +978,7 @@ namespace NuGetGallery
 
         [HttpPut]
         [ApiAuthorize]
+        [RequiresUserAgent]
         [ApiScopeRequired(NuGetScopes.PackageUnlist)]
         [ActionName(RouteName.DeprecatePackageApi)]
         public virtual async Task<ActionResult> DeprecatePackage(

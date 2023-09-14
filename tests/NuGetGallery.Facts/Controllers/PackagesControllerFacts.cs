@@ -16,7 +16,6 @@ using System.Web;
 using System.Web.Caching;
 using System.Web.Mvc;
 using System.Web.Routing;
-using Autofac.Features.OwnedInstances;
 using Moq;
 using NuGet.Packaging;
 using NuGet.Services.Entities;
@@ -6493,6 +6492,16 @@ namespace NuGetGallery
                     x => x.SendMessageAsync(It.IsAny<ReportMyPackageMessage>(), false, false),
                     Times.Once);
             }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _controller?.Dispose();
+                    base.Dispose(disposing);
+                }
+            }
         }
 
         public class TheUploadFileActionForGetRequests
@@ -7952,6 +7961,7 @@ namespace NuGetGallery
 
                     // Assert
                     fakeTelemetryService.Verify(x => x.TrackPackagePushFailureEvent(PackageId, new NuGetVersion(PackageVersion)), Times.Once());
+                    fakeTelemetryService.Verify(x => x.TrackPackagePushFailureEvent(null, null), Times.Never());
                 }
             }
 
@@ -8922,6 +8932,54 @@ namespace NuGetGallery
                 }
             }
 
+            /// <remarks>
+            /// There is a race condition between API and Web UI uploads where we can end up
+            /// in a situation where user may have "verify package page" open in their browser
+            /// pushes the same package with command line client, then clicks "Verify" in
+            /// the browser. Browser will report failure (as package already exists). That
+            /// failure must not be counted as "package push failure".
+            /// </remarks>
+            [Fact]
+            public async Task DoesNotReportPackagePushFailureOnDuplicatePackage()
+            {
+                // Arrange
+                var fakeUploadFileService = new Mock<IUploadFileService>();
+                using (var fakeFileStream = new MemoryStream())
+                {
+                    fakeUploadFileService.Setup(x => x.GetUploadFileAsync(TestUtility.FakeUser.Key)).Returns(Task.FromResult<Stream>(fakeFileStream));
+                    fakeUploadFileService.Setup(x => x.DeleteUploadFileAsync(TestUtility.FakeUser.Key)).Returns(Task.FromResult(0));
+                    var fakePackageUploadService = GetValidPackageUploadService(PackageId, PackageVersion);
+                    fakePackageUploadService
+                        .Setup(pus => pus.GeneratePackageAsync(
+                            It.IsAny<string>(),
+                            It.IsAny<PackageArchiveReader>(),
+                            It.IsAny<PackageStreamMetadata>(),
+                            It.IsAny<User>(),
+                            It.IsAny<User>()))
+                        .Throws(new PackageAlreadyExistsException());
+
+                    var fakeUserService = new Mock<IUserService>();
+                    fakeUserService.Setup(x => x.FindByUsername(TestUtility.FakeUser.Username, false)).Returns(TestUtility.FakeUser);
+
+                    var fakeTelemetryService = new Mock<ITelemetryService>();
+
+                    var controller = CreateController(
+                        GetConfigurationService(),
+                        packageUploadService: fakePackageUploadService,
+                        uploadFileService: fakeUploadFileService,
+                        userService: fakeUserService,
+                        telemetryService: fakeTelemetryService);
+                    controller.SetCurrentUser(TestUtility.FakeUser);
+
+                    // Act
+                    await Assert.ThrowsAsync<PackageAlreadyExistsException>(() => controller.VerifyPackage(new VerifyPackageRequest { Listed = true, Owner = TestUtility.FakeUser.Username }));
+
+                    // Assert
+                    fakeTelemetryService
+                        .Verify(ts => ts.TrackPackagePushFailureEvent(It.IsAny<string>(), It.IsAny<NuGetVersion>()), Times.Never);
+                }
+            }
+
             [Fact]
             public async Task WillNotCommitChangesToReadMeService()
             {
@@ -9727,6 +9785,16 @@ namespace NuGetGallery
                 // Assert
                 Assert.IsType<HttpNotFoundResult>(result);
             }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _target?.Dispose();
+                    base.Dispose(disposing);
+                }
+            }
         }
 
         public class TheRevalidateSymbolsMethod : TestContainer
@@ -9870,6 +9938,16 @@ namespace NuGetGallery
                 // Assert
                 Assert.IsType<HttpStatusCodeResult>(result);
                 ResultAssert.IsStatusCode(result, HttpStatusCode.BadRequest);
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _target?.Dispose();
+                    base.Dispose(disposing);
+                }
             }
         }
 

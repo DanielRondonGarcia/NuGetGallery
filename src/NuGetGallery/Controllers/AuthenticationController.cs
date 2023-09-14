@@ -115,6 +115,10 @@ namespace NuGetGallery
             {
                 return LoggedInRedirect(returnUrl);
             }
+            else if (_featureFlagService.IsNewAccount2FAEnforcementEnabled())
+            {
+                return Redirect(Url.LogOn(null, relativeUrl: false));
+            }
 
             return RegisterView(new LogOnViewModel());
         }
@@ -137,7 +141,7 @@ namespace NuGetGallery
             }
 
             var authenticationResult = await _authService.Authenticate(model.SignIn.UserNameOrEmail, model.SignIn.Password);
-            
+
             if (authenticationResult.Result != PasswordAuthenticationResult.AuthenticationResult.Success)
             {
                 string modelErrorMessage = string.Empty;
@@ -259,6 +263,11 @@ namespace NuGetGallery
         [HttpGet]
         public virtual ActionResult RegisterLegacy(string returnUrl)
         {
+            if (_featureFlagService.IsNewAccount2FAEnforcementEnabled())
+            {
+                return Redirect(Url.LogOn(null, relativeUrl: false));
+            }
+
             return Redirect(Url.LogOnNuGetAccount(returnUrl, relativeUrl: false));
         }
 
@@ -311,6 +320,10 @@ namespace NuGetGallery
                         result.Credential,
                         autoConfirm: (result.Credential.IsExternal() && string.Equals(result.UserInfo?.Email, model.Register.EmailAddress)),
                         enableMultiFactorAuthentication: enableMultiFactorAuthentication);
+                }
+                else if (_featureFlagService.IsNewAccount2FAEnforcementEnabled())
+                {
+                    return Redirect(Url.LogOn(null, relativeUrl: false));
                 }
                 else
                 {
@@ -428,6 +441,12 @@ namespace NuGetGallery
         [HttpGet]
         public virtual ActionResult AuthenticateGet(string returnUrl, string provider)
         {
+            if (provider == null || !_authService.Authenticators.ContainsKey(provider))
+            {
+                TempData["ErrorMessage"] = ServicesStrings.AuthenticationProviderNotFound;
+                return SafeRedirect(returnUrl);
+            }
+
             return AuthenticateAndLinkExternal(returnUrl, provider);
         }
 
@@ -942,7 +961,7 @@ namespace NuGetGallery
             existingModel.SignIn = existingModel.SignIn ?? new SignInViewModel();
             existingModel.Register = existingModel.Register ?? new RegisterViewModel();
             existingModel.IsNuGetAccountPasswordLoginEnabled = _featureFlagService.IsNuGetAccountPasswordLoginEnabled();
-            existingModel.IsEmailOnExceptionList = _contentObjectService.LoginDiscontinuationConfiguration.IsEmailOnExceptionsList(existingModel.SignIn.UserNameOrEmail);
+            existingModel.IsEmailOnExceptionList = _contentObjectService.LoginDiscontinuationConfiguration.IsEmailInExceptionsList(existingModel.SignIn.UserNameOrEmail);
             return View(viewName, existingModel);
         }
 

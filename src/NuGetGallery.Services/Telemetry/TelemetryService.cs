@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Security.Principal;
 using System.Web;
-using Microsoft.Owin.Security.MicrosoftAccount;
 using Newtonsoft.Json;
 using NuGet.Services.Entities;
 using NuGet.Services.FeatureFlags;
@@ -129,6 +128,7 @@ namespace NuGetGallery
         public const string ClientVersion = "ClientVersion";
         public const string ProtocolVersion = "ProtocolVersion";
         public const string ClientInformation = "ClientInformation";
+        public const string UserAgent = "UserAgent";
         public const string IsAuthenticated = "IsAuthenticated";
         public const string IsScoped = "IsScoped";
         public const string KeyCreationDate = "KeyCreationDate";
@@ -144,6 +144,7 @@ namespace NuGetGallery
         public const string DeprecationAlternatePackageId = "PackageDeprecationAlternatePackageId";
         public const string DeprecationAlternatePackageVersion = "PackageDeprecationAlternatePackageVersion";
         public const string DeprecationCustomMessage = "PackageDeprecationCustomMessage";
+        public const string DeprecationHasChanges = "PackageDeprecationHasChanges";
 
         // User properties
         public const string RegistrationMethod = "RegistrationMethod";
@@ -528,7 +529,8 @@ namespace NuGetGallery
             PackageDeprecationStatus status,
             PackageRegistration alternateRegistration,
             Package alternatePackage,
-            bool hasCustomMessage)
+            bool hasCustomMessage,
+            bool hasChanges)
         {
             TrackMetricForPackageVersions(
                 Events.PackageDeprecate,
@@ -539,6 +541,7 @@ namespace NuGetGallery
                     properties.Add(DeprecationAlternatePackageId, alternateRegistration?.Id ?? alternatePackage?.Id);
                     properties.Add(DeprecationAlternatePackageVersion, alternatePackage?.NormalizedVersion);
                     properties.Add(DeprecationCustomMessage, hasCustomMessage.ToString());
+                    properties.Add(DeprecationHasChanges, hasChanges.ToString());
                 });
         }
 

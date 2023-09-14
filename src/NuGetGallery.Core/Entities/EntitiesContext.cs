@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Data.Entity.Infrastructure.Annotations;
+using System.Linq;
 using System.Threading.Tasks;
 using NuGet.Services.Entities;
 
@@ -88,6 +89,8 @@ namespace NuGetGallery
         /// User or organization accounts.
         /// </summary>
         public DbSet<User> Users { get; set; }
+
+        public bool HasChanges => ChangeTracker.HasChanges();
 
         DbSet<T> IReadOnlyEntitiesContext.Set<T>()
         {
@@ -410,6 +413,24 @@ namespace NuGetGallery
             modelBuilder.Entity<UserCertificate>()
                 .HasKey(uc => uc.Key);
 
+            modelBuilder.Entity<UserCertificate>()
+                .Property(uc => uc.CertificateKey)
+                .HasColumnAnnotation(
+                    IndexAnnotation.AnnotationName,
+                    new IndexAnnotation(new IndexAttribute("IX_UserCertificates_CertificateKeyUserKey", order: 0)
+                    {
+                        IsUnique = true,
+                    }));
+
+            modelBuilder.Entity<UserCertificate>()
+                .Property(uc => uc.UserKey)
+                .HasColumnAnnotation(
+                    IndexAnnotation.AnnotationName,
+                    new IndexAnnotation(new IndexAttribute("IX_UserCertificates_CertificateKeyUserKey", order: 1)
+                    {
+                        IsUnique = true,
+                    }));
+
             modelBuilder.Entity<User>()
                 .HasMany(u => u.UserCertificates)
                 .WithRequired(uc => uc.User)
@@ -466,6 +487,14 @@ namespace NuGetGallery
                 .HasForeignKey(d => d.DeprecatedByUserKey)
                 .WillCascadeOnDelete(false);
 
+            modelBuilder.Entity<PackageDeprecation>()
+                .Property(pd => pd.PackageKey)
+                .HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsUnique = true }));
+
+            modelBuilder.Entity<PackageDeprecation>()
+                .Property(pd => pd.DeprecatedOn)
+                .HasDatabaseGeneratedOption(DatabaseGeneratedOption.Computed);
+
             modelBuilder.Entity<PackageVulnerability>()
                 .HasKey(v => v.Key)
                 .HasMany(v => v.AffectedRanges)
@@ -514,6 +543,7 @@ namespace NuGetGallery
                 .HasForeignKey(r => r.ToPackageRegistrationKey)
                 .WillCascadeOnDelete(false);
         }
+
 #pragma warning restore 618
 
         private class QueryHintScope : IDisposable

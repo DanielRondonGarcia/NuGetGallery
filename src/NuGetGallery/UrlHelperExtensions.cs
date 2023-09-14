@@ -3,12 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
 using NuGet.Services.Entities;
-using NuGet.Services.Logging;
 using NuGetGallery.Areas.Admin;
 using NuGetGallery.Areas.Admin.Controllers;
 using NuGetGallery.Configuration;
@@ -1460,6 +1458,11 @@ namespace NuGetGallery
         public static string RemoveCredential(this UrlHelper url, bool relativeUrl = true)
         {
             return GetActionLink(url, "RemoveCredential", "Users", relativeUrl);
+        }
+
+        public static string RevokeApiKeyCredential(this UrlHelper url, bool relativeUrl = true)
+        {
+            return GetActionLink(url, "RevokeApiKeyCredential", "Users", relativeUrl);
         }
 
         public static string RegenerateCredential(this UrlHelper url, bool relativeUrl = true)

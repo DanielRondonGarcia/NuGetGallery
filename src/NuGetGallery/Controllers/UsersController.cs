@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -631,7 +630,7 @@ namespace NuGetGallery
         [ValidateRecaptchaResponse]
         public virtual async Task<ActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
-            if(!_featureFlagService.IsNuGetAccountPasswordLoginEnabled() && !ContentObjectService.LoginDiscontinuationConfiguration.IsEmailOnExceptionsList(model.Email))
+            if(!_featureFlagService.IsNuGetAccountPasswordLoginEnabled() && !ContentObjectService.LoginDiscontinuationConfiguration.IsEmailInExceptionsList(model.Email))
             {
                 ModelState.AddModelError(string.Empty, Strings.ForgotPassword_Disabled_Error);
 
@@ -896,6 +895,36 @@ namespace NuGetGallery
             }
 
             return await RemoveCredentialInternal(user, cred, Strings.CredentialRemoved);
+        }
+
+        [HttpPost]
+        [UIAuthorize]
+        [ValidateAntiForgeryToken]
+        public virtual async Task<JsonResult> RevokeApiKeyCredential(string credentialType, int? credentialKey)
+        {
+            var user = GetCurrentUser();
+
+            var cred = user.Credentials.SingleOrDefault(
+                c => string.Equals(c.Type, credentialType, StringComparison.OrdinalIgnoreCase)
+                    && CredentialKeyMatches(credentialKey, c));
+
+            if (cred == null)
+            {
+                Response.StatusCode = (int)HttpStatusCode.NotFound;
+                return Json(Strings.CredentialNotFound);
+            }
+
+            await AuthenticationService.RevokeApiKeyCredential(cred, CredentialRevocationSource.User);
+
+            var credViewModel = AuthenticationService.DescribeCredential(cred);
+
+            var emailMessage = new ApiKeyRevokedMessage(
+                _config,
+                user,
+                credViewModel.GetCredentialTypeInfo());
+            await MessageService.SendMessageAsync(emailMessage);
+
+            return Json(new ApiKeyViewModel(credViewModel));
         }
 
         [HttpPost]
