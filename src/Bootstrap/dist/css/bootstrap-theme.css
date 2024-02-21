@@ -274,6 +274,31 @@ img.reserved-indicator-icon {
   outline: solid 0.25px;
   outline-offset: 0;
 }
+.package-list li.package-warning-indicators {
+  display: block;
+  overflow-y: visible;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+.package-list li.package-tfm-badges {
+  display: block;
+  overflow-y: visible;
+}
+.package-list li.package-tfm-badges .framework-badges {
+  margin-bottom: 2px;
+}
+.package-list li.package-tfm-badges .framework-badges span {
+  margin-right: 1px;
+}
+.package-list li.package-tfm-badges .framework-badges .framework-badge-computed {
+  color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+@media (max-width: 768px) {
+  .package-list li.package-tfm-badges .framework-badges a + a span {
+    margin-bottom: 4px;
+  }
+}
 @media (min-width: 768px) {
   .package-list li {
     display: inline-block;
@@ -627,30 +652,29 @@ img.reserved-indicator-icon {
   margin-bottom: 0px;
 }
 .package-warning {
-  padding-right: 8px;
-  padding-left: 8px;
+  padding: 1px 8px;
   border-radius: 2px;
   margin-right: 5px;
   color: #323130;
 }
 .package-warning--vulnerable {
-  padding-right: 8px;
-  padding-left: 8px;
+  padding: 1px 8px;
   border-radius: 2px;
   margin-right: 5px;
   color: #323130;
   background-color: #fed9cc;
+  border: 1px solid #fda181;
 }
 .package-warning--vulnerable i {
   color: #d83b01;
 }
 .package-warning--deprecated {
-  padding-right: 8px;
-  padding-left: 8px;
+  padding: 1px 8px;
   border-radius: 2px;
   margin-right: 5px;
   color: #323130;
   background-color: #fff4ce;
+  border: 1px solid #ffcc1c;
 }
 .multi-select-dropdown {
   position: relative;
@@ -836,6 +860,13 @@ img.reserved-indicator-icon {
   font-size: 14px;
   line-height: 20px;
   margin-bottom: 14px;
+}
+.framework-badges a {
+  display: inline-block;
+}
+.framework-badges a:hover,
+.framework-badges a:focus {
+  text-decoration: none;
 }
 .framework-badge {
   padding: 1px 8px;
@@ -1059,6 +1090,34 @@ p.frameworktableinfo-text {
 }
 .page-admin-index p {
   margin-bottom: 16px;
+}
+.page-admin-popularity-transfers #popularityTransferSuccessMessage {
+  white-space: pre-wrap;
+}
+.page-admin-popularity-transfers #validatedInputResult {
+  table-layout: fixed;
+  width: 100%;
+}
+.page-admin-popularity-transfers .col-group-1 {
+  width: 20%;
+}
+.page-admin-popularity-transfers .col-group-2 {
+  width: 10%;
+}
+.page-admin-popularity-transfers .col-group-3 {
+  width: 20%;
+}
+.page-admin-popularity-transfers .col-group-from-header {
+  background-color: #f2f2f2;
+}
+.page-admin-popularity-transfers .col-group-to-header {
+  background-color: #ebebeb;
+}
+.page-admin-popularity-transfers .col-group-from-data {
+  background-color: #f2f2f2;
+}
+.page-admin-popularity-transfers .col-group-to-data {
+  background-color: #ebebeb;
 }
 .page-api-keys .example-commands {
   background-color: #002440;
@@ -1707,6 +1766,40 @@ p.frameworktableinfo-text {
 .page-downloads .list-tools li {
   margin-top: 20px;
 }
+.page-downloads .older-versions-dropdown {
+  margin-top: 20px;
+}
+.page-downloads .older-versions-dropdown button {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  font-size: 12px;
+}
+.page-downloads .older-versions-dropdown button:hover {
+  color: #5a87dc;
+}
+.page-downloads .older-versions-dropdown button:focus {
+  outline: solid;
+  z-index: 1;
+}
+.page-downloads .older-versions-dropdown li {
+  display: none;
+}
+.page-downloads .older-versions-dropdown p {
+  color: #e50000;
+  font-size: 14px;
+  display: none;
+}
+.page-downloads .older-versions-dropdown.show-list-items p,
+.page-downloads .older-versions-dropdown.show-list-items li {
+  display: block;
+}
+.page-downloads .older-versions-dropdown.show-list-items li {
+  margin-top: 20px;
+}
+.page-downloads .older-versions-dropdown.show-list-items ul {
+  padding: 0;
+}
 .page-edit-package .readme-tabs {
   margin-top: 0.5em;
 }
@@ -1919,6 +2012,7 @@ p.frameworktableinfo-text {
   border: none;
   outline: none;
   float: right;
+  margin-right: -3px;
 }
 .page-list-packages .advanced-search-panel .active,
 .page-list-packages .advanced-search-panel .collapsible:hover {
@@ -1938,6 +2032,81 @@ p.frameworktableinfo-text {
 }
 .page-list-packages .advanced-search-panel .tfmTab ul {
   list-style: none;
+}
+.page-list-packages .advanced-search-panel .computed-frameworks-option {
+  margin-top: 3px;
+  margin-right: -2px;
+}
+.page-list-packages .advanced-search-panel .computed-frameworks-option label {
+  margin-left: 0px;
+}
+.page-list-packages .advanced-search-panel .computed-frameworks-option #computed-frameworks-checkbox {
+  float: right;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option {
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  margin-top: 2px;
+  margin-bottom: 6px;
+  margin-right: -2px;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option p {
+  margin: 0px;
+  float: left;
+  font-size: small;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option i {
+  vertical-align: middle;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option .toggle-switch-control {
+  float: right;
+  margin-right: -2px;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option input {
+  opacity: 0;
+  width: 0px;
+  margin: 0px;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option input:focus + label {
+  outline: 1px solid #000;
+  outline-offset: -1px;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option label {
+  cursor: pointer;
+  float: left;
+  width: 35px;
+  padding: 4px 7px;
+  margin: 0px;
+  text-align: center;
+  vertical-align: middle;
+  color: #555;
+  font-size: x-small;
+  background-color: #d9d9d9;
+  border: 1px solid #767676;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option input:checked + label {
+  color: #fff;
+  font-weight: bolder;
+  background-color: #337ab7;
+  border: 1px solid #337ab7;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option label[for="all-selector"] {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.page-list-packages .advanced-search-panel .framework-filter-mode-option label[for="any-selector"] {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
 }
 @media (min-width: 768px) {
   .page-list-packages .text-align-right {

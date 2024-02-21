@@ -259,7 +259,7 @@ namespace NuGetGallery
         bool IsShowReportAbuseSafetyChangesEnabled();
 
         /// <summary>
-        /// Whether online safety categories are available to content owned by at least one AAD-authenticated account
+        /// Whether online safety categories are available to content owned by at least one Microsoft Entra ID-authenticated account
         /// </summary>
         bool IsAllowAadContentSafetyReportsEnabled();
 
@@ -327,5 +327,15 @@ namespace NuGetGallery
         /// Whether or not to allow filtering by frameworks on NuGet.org search
         /// </summary>
         bool IsFrameworkFilteringEnabled(User user);
+
+        /// <summary>
+        /// Whether or not to display TFM badges in search results
+        /// </summary>
+        bool IsDisplayTfmBadgesEnabled(User user);
+
+        /// <summary>
+        /// Whether or not to allow filtering by frameworks on NuGet.org search
+        /// </summary>
+        bool IsAdvancedFrameworkFilteringEnabled(User user);
     }
 }

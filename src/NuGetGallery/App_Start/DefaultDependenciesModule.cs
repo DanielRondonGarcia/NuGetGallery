@@ -54,7 +54,6 @@ using NuGetGallery.Infrastructure.Lucene;
 using NuGetGallery.Infrastructure.Mail;
 using NuGetGallery.Infrastructure.Search;
 using NuGetGallery.Infrastructure.Search.Correlation;
-using NuGetGallery.Login;
 using NuGetGallery.Security;
 using NuGetGallery.Services;
 using Role = NuGet.Services.Entities.Role;
@@ -407,6 +406,8 @@ namespace NuGetGallery
                 .AsSelf()
                 .As<ICertificateService>()
                 .InstancePerLifetimeScope();
+            
+            RegisterTyposquattingServiceHelper(builder, loggerFactory);
 
             builder.RegisterType<TyposquattingService>()
                 .AsSelf()
@@ -469,11 +470,6 @@ namespace NuGetGallery
             builder.RegisterType<PackageVulnerabilitiesCacheService>()
                 .AsSelf()
                 .As<IPackageVulnerabilitiesCacheService>()
-                .SingleInstance();
-
-            builder.RegisterType<FrameworkCompatibilityService>()
-                .AsSelf()
-                .As<IFrameworkCompatibilityService>()
                 .SingleInstance();
 
             builder.RegisterType<PackageFrameworkCompatibilityFactory>()
@@ -800,10 +796,10 @@ namespace NuGetGallery
             var asyncAccountDeleteTopicName = configuration.ServiceBus.AccountDeleter_TopicName;
 
             builder
-                .Register(c => new TopicClientWrapper(asyncAccountDeleteConnectionString, asyncAccountDeleteTopicName))
+                .Register(c => new TopicClientWrapper(asyncAccountDeleteConnectionString, asyncAccountDeleteTopicName, configuration.ServiceBus.ManagedIdentityClientId))
                 .SingleInstance()
                 .Keyed<ITopicClient>(BindingKeys.AccountDeleterTopic)
-                .OnRelease(x => x.Close());
+                .OnRelease(x => x.CloseAsync());
 
             builder
                 .RegisterType<AsynchronousDeleteAccountService>()
@@ -935,11 +931,11 @@ namespace NuGetGallery
             var emailPublisherTopicName = configuration.ServiceBus.EmailPublisher_TopicName;
 
             builder
-                .Register(c => new TopicClientWrapper(emailPublisherConnectionString, emailPublisherTopicName))
+                .Register(c => new TopicClientWrapper(emailPublisherConnectionString, emailPublisherTopicName, configuration.ServiceBus.ManagedIdentityClientId))
                 .As<ITopicClient>()
                 .SingleInstance()
                 .Keyed<ITopicClient>(BindingKeys.EmailPublisherTopic)
-                .OnRelease(x => x.Close());
+                .OnRelease(x => x.CloseAsync());
 
             builder
                 .RegisterType<EmailMessageEnqueuer>()
@@ -1090,18 +1086,18 @@ namespace NuGetGallery
                 var symbolsValidationTopicName = configuration.ServiceBus.SymbolsValidation_TopicName;
 
                 builder
-                    .Register(c => new TopicClientWrapper(validationConnectionString, validationTopicName))
+                    .Register(c => new TopicClientWrapper(validationConnectionString, validationTopicName, configuration.ServiceBus.ManagedIdentityClientId))
                     .As<ITopicClient>()
                     .SingleInstance()
                     .Keyed<ITopicClient>(BindingKeys.PackageValidationTopic)
-                    .OnRelease(x => x.Close());
+                    .OnRelease(x => x.CloseAsync());
 
                 builder
-                    .Register(c => new TopicClientWrapper(symbolsValidationConnectionString, symbolsValidationTopicName))
+                    .Register(c => new TopicClientWrapper(symbolsValidationConnectionString, symbolsValidationTopicName, configuration.ServiceBus.ManagedIdentityClientId))
                     .As<ITopicClient>()
                     .SingleInstance()
                     .Keyed<ITopicClient>(BindingKeys.SymbolsPackageValidationTopic)
-                    .OnRelease(x => x.Close());
+                    .OnRelease(x => x.CloseAsync());
             }
             else
             {
@@ -1210,7 +1206,9 @@ namespace NuGetGallery
                     c.Resolve<ITelemetryService>(),
                     c.Resolve<IMessageService>(),
                     c.Resolve<IMessageServiceConfiguration>(),
-                    c.Resolve<IIconUrlProvider>()))
+                    c.Resolve<IIconUrlProvider>(),
+                    c.Resolve<IPackageFrameworkCompatibilityFactory>(),
+                    c.Resolve<IFeatureFlagService>()))
                 .As<ISearchSideBySideService>()
                 .InstancePerLifetimeScope();
 
@@ -1591,6 +1589,33 @@ namespace NuGetGallery
             }
 
             CookieComplianceService.Initialize(service ?? new NullCookieComplianceService(), logger);
+        }
+
+        private static void RegisterTyposquattingServiceHelper(ContainerBuilder builder, ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger(nameof(ITyposquattingServiceHelper));
+
+            builder.Register(c =>
+            {
+                var typosquattingService = GetAddInServices<ITyposquattingServiceHelper>(sp =>
+                {
+                    sp.ComposeExportedValue<ILogger>(logger);
+                }).FirstOrDefault();
+
+                if (typosquattingService == null)
+                {
+                    typosquattingService = new ExactMatchTyposquattingServiceHelper();
+                    logger.LogInformation("No typosquatting service helper was found, using ExactMatchTyposquattingServiceHelper instead.");
+                }
+                else
+                {
+                    logger.LogInformation("ITyposquattingServiceHelper found.");
+                }
+
+                return typosquattingService;
+            })
+            .As<ITyposquattingServiceHelper>()
+            .SingleInstance();
         }
     }
 }

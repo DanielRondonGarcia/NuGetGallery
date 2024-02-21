@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
@@ -69,18 +70,22 @@ namespace NuGetGallery
             ReportPackageReason.Other
         };
 
-        private static readonly IReadOnlyList<ReportPackageReason> ReportAbuseWithSafetyReasons = new[]
+        private static readonly IReadOnlyList<ReportPackageReason> SafetyReportAbuseReasons = new[]
         {
-            ReportPackageReason.ViolatesALicenseIOwn,
-            ReportPackageReason.ContainsMaliciousCode,
-            ReportPackageReason.ContainsSecurityVulnerability,
-            ReportPackageReason.HasABugOrFailedToInstall,
             ReportPackageReason.ChildSexualExploitationOrAbuse,
             ReportPackageReason.TerrorismOrViolentExtremism,
             ReportPackageReason.HateSpeech,
             ReportPackageReason.ImminentHarm,
             ReportPackageReason.RevengePorn,
             ReportPackageReason.OtherNudityOrPornography,
+        };
+
+        private static readonly IReadOnlyList<ReportPackageReason> ReportAbuseWithSafetyReasons = new[]
+        {
+            ReportPackageReason.ViolatesALicenseIOwn,
+            ReportPackageReason.ContainsMaliciousCode,
+            ReportPackageReason.ContainsSecurityVulnerability,
+            ReportPackageReason.HasABugOrFailedToInstall,
             ReportPackageReason.Other
         };
 
@@ -224,11 +229,11 @@ namespace NuGetGallery
             _abTestService = abTestService ?? throw new ArgumentNullException(nameof(abTestService));
             _iconUrlProvider = iconUrlProvider ?? throw new ArgumentNullException(nameof(iconUrlProvider));
 
-            _displayPackageViewModelFactory = new DisplayPackageViewModelFactory(_iconUrlProvider);
+            _displayPackageViewModelFactory = new DisplayPackageViewModelFactory(_iconUrlProvider, _compatibilityFactory, featureFlagService);
             _displayLicenseViewModelFactory = new DisplayLicenseViewModelFactory(_iconUrlProvider, _markdownService, _featureFlagService);
-            _listPackageItemViewModelFactory = new ListPackageItemViewModelFactory(_iconUrlProvider);
-            _managePackageViewModelFactory = new ManagePackageViewModelFactory(_iconUrlProvider);
-            _deletePackageViewModelFactory = new DeletePackageViewModelFactory(_iconUrlProvider);
+            _listPackageItemViewModelFactory = new ListPackageItemViewModelFactory(_iconUrlProvider, _compatibilityFactory, _featureFlagService);
+            _managePackageViewModelFactory = new ManagePackageViewModelFactory(_iconUrlProvider, _compatibilityFactory, featureFlagService);
+            _deletePackageViewModelFactory = new DeletePackageViewModelFactory(_iconUrlProvider, _compatibilityFactory, featureFlagService);
         }
 
         [HttpGet]
@@ -504,11 +509,33 @@ namespace NuGetGallery
             // If the current user doesn't have the rights to upload the package, the package upload will be rejected by submitting the form.
             // Related: https://github.com/NuGet/NuGetGallery/issues/5043
             IEnumerable<User> accountsAllowedOnBehalfOf = new[] { currentUser };
-            var foundEntryInFuture = ZipArchiveHelpers.FoundEntryInFuture(uploadStream, out var entryInTheFuture);
-            if (foundEntryInFuture)
+            InvalidZipEntry anyInvalidZipEntry = ZipArchiveHelpers.ValidateArchiveEntries(uploadStream, out ZipArchiveEntry invalidZipEntry);
+
+            switch (anyInvalidZipEntry)
             {
-                return Json(HttpStatusCode.BadRequest, new[] {
-                    new JsonValidationMessage(string.Format(CultureInfo.CurrentCulture, Strings.PackageEntryFromTheFuture, entryInTheFuture.Name)) });
+                case InvalidZipEntry.None:
+                    break;
+                case InvalidZipEntry.InFuture:
+                    return Json(HttpStatusCode.BadRequest, new[]
+                    {
+                        new JsonValidationMessage(string.Format(CultureInfo.CurrentCulture, Strings.PackageEntryFromTheFuture, invalidZipEntry.Name))
+                    });
+                case InvalidZipEntry.DoubleForwardSlashesInPath:
+                    return Json(HttpStatusCode.BadRequest, new[]
+                    {
+                        new JsonValidationMessage(string.Format(CultureInfo.CurrentCulture, Strings.PackageEntryWithDoubleForwardSlash, invalidZipEntry.Name))
+                    });
+                case InvalidZipEntry.DoubleBackwardSlashesInPath:
+                    return Json(HttpStatusCode.BadRequest, new[]
+                    {
+                        new JsonValidationMessage(string.Format(CultureInfo.CurrentCulture, Strings.PackageEntryWithDoubleBackSlash, invalidZipEntry.Name))
+                    });
+                default:
+                    return Json(HttpStatusCode.BadRequest, new[]
+                    {
+                        // Generic error message for unknown invalid zip entry
+                        new JsonValidationMessage(string.Format(CultureInfo.CurrentCulture, Strings.InvalidPackageEntry, invalidZipEntry.Name))
+                    });
             }
 
             try
@@ -962,7 +989,7 @@ namespace NuGetGallery
 
             if (model.IsComputeTargetFrameworkEnabled || model.IsDisplayTargetFrameworkEnabled)
             {
-                model.PackageFrameworkCompatibility = _compatibilityFactory.Create(package.SupportedFrameworks);
+                model.PackageFrameworkCompatibility = _compatibilityFactory.Create(package.SupportedFrameworks, id, version);
             }
 
             if (model.IsPackageDependentsEnabled)
@@ -1029,6 +1056,8 @@ namespace NuGetGallery
                             includePrerelease: true,
                             frameworks: null,
                             tfms: null,
+                            includeComputedFrameworks: false,
+                            frameworkFilterMode: null,
                             packageType: null,
                             sortOrder: null,
                             context: SearchFilter.ODataSearchContext,
@@ -1237,6 +1266,7 @@ namespace NuGetGallery
             var page = searchAndListModel.Page;
             var q = searchAndListModel.Q;
             var includePrerelease = searchAndListModel.Prerel ?? true;
+            var includeComputedFrameworks = searchAndListModel.IncludeComputedFrameworks ?? true;
             var includeTestData = searchAndListModel.TestData ?? false;
 
             if (page < 1)
@@ -1262,6 +1292,7 @@ namespace NuGetGallery
             var searchService = isPreviewSearchEnabled ? _searchServiceFactory.GetPreviewService() : _searchServiceFactory.GetService();
             var isAdvancedSearchFlightEnabled = _featureFlagService.IsAdvancedSearchEnabled(GetCurrentUser());
             var isFrameworkFilteringEnabled = _featureFlagService.IsFrameworkFilteringEnabled(GetCurrentUser());
+            var isAdvancedFrameworkFilteringEnabled = _featureFlagService.IsAdvancedFrameworkFilteringEnabled(GetCurrentUser());
 
             // If advanced search is disabled, use the default experience
             if (!isAdvancedSearchFlightEnabled || !searchService.SupportsAdvancedSearch)
@@ -1269,6 +1300,8 @@ namespace NuGetGallery
                 searchAndListModel.SortBy = GalleryConstants.SearchSortNames.Relevance;
                 searchAndListModel.Frameworks = string.Empty;
                 searchAndListModel.Tfms = string.Empty;
+                searchAndListModel.IncludeComputedFrameworks = false;
+                searchAndListModel.FrameworkFilterMode = string.Empty;
                 searchAndListModel.PackageType = string.Empty;
             }
 
@@ -1297,6 +1330,8 @@ namespace NuGetGallery
                         includePrerelease: includePrerelease,
                         frameworks: searchAndListModel.Frameworks,
                         tfms: searchAndListModel.Tfms,
+                        includeComputedFrameworks: includeComputedFrameworks,
+                        frameworkFilterMode: searchAndListModel.FrameworkFilterMode,
                         packageType: searchAndListModel.PackageType,
                         sortOrder: searchAndListModel.SortBy,
                         context: SearchFilter.UISearchContext,
@@ -1328,6 +1363,8 @@ namespace NuGetGallery
                     includePrerelease: includePrerelease,
                     frameworks: searchAndListModel.Frameworks,
                     tfms: searchAndListModel.Tfms,
+                    includeComputedFrameworks: includeComputedFrameworks,
+                    frameworkFilterMode: searchAndListModel.FrameworkFilterMode,
                     packageType: searchAndListModel.PackageType,
                     sortOrder: searchAndListModel.SortBy,
                     context: SearchFilter.UISearchContext,
@@ -1346,7 +1383,7 @@ namespace NuGetGallery
 
             var currentUser = GetCurrentUser();
             var items = results.Data
-                .Select(pv => _listPackageItemViewModelFactory.Create(pv, currentUser))
+                .Select(pv => _listPackageItemViewModelFactory.Create(pv, currentUser, includeComputedFrameworks))
                 .ToList();
 
             var viewModel = new PackageListViewModel(
@@ -1361,12 +1398,15 @@ namespace NuGetGallery
                 isPreviewSearchEnabled,
                 searchAndListModel.Frameworks,
                 searchAndListModel.Tfms,
+                includeComputedFrameworks,
+                searchAndListModel.FrameworkFilterMode,
                 searchAndListModel.PackageType,
                 searchAndListModel.SortBy);
 
             // If the experience hasn't been cached, it means it's not the default experienced, therefore, show the panel
             viewModel.IsAdvancedSearchFlightEnabled = searchService.SupportsAdvancedSearch && isAdvancedSearchFlightEnabled;
             viewModel.IsFrameworkFilteringEnabled = isFrameworkFilteringEnabled;
+            viewModel.IsAdvancedFrameworkFilteringEnabled = isAdvancedFrameworkFilteringEnabled;
 
             ViewBag.SearchTerm = q;
 
@@ -1387,7 +1427,7 @@ namespace NuGetGallery
             {
                 ReasonChoices = _featureFlagService.IsShowReportAbuseSafetyChangesEnabled()
                     && (_featureFlagService.IsAllowAadContentSafetyReportsEnabled() || PackageHasNoAadOwners(package))
-                    ? ReportAbuseWithSafetyReasons
+                    ? ReportAbuseReasons.Union(SafetyReportAbuseReasons).ToList()
                     : ReportAbuseReasons,
                 PackageId = id,
                 PackageVersion = package.Version,
@@ -1471,15 +1511,27 @@ namespace NuGetGallery
                     "The signature is required.");
             }
 
-            if (!ModelState.IsValid)
-            {
-                return ReportAbuse(id, version);
-            }
-
             var package = _packageService.FindPackageByIdAndVersionStrict(id, version);
+
             if (package == null)
             {
                 return HttpNotFound();
+            }
+
+            var ReasonChoices = _featureFlagService.IsShowReportAbuseSafetyChangesEnabled()
+                    && (_featureFlagService.IsAllowAadContentSafetyReportsEnabled() || PackageHasNoAadOwners(package))
+                    ? ReportAbuseReasons.Union(SafetyReportAbuseReasons).ToList()
+                    : ReportAbuseReasons;
+
+            var reportReason = (ReportPackageReason)reportForm.Reason;
+            if (!ReasonChoices.Contains(reportReason) || SafetyReportAbuseReasons.Contains(reportReason))
+            {
+                return HttpNotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return ReportAbuse(id, version);
             }
 
             User user = null;

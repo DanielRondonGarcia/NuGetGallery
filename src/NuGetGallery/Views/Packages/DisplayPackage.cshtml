@@ -35,6 +35,7 @@
             {
                 Id = "dotnet-cli-global",
                 CommandPrefix = "> ",
+
                 InstallPackageCommands = new [] { string.Format("dotnet tool install --global {0} --version {1}", Model.Id, Model.Version) },
                 AlertLevel = AlertLevel.Info,
                 AlertMessage = "This package contains a <a href='https://aka.ms/global-tools'>.NET tool</a> you can call from the shell/command line.",
@@ -375,67 +376,73 @@
                     @Html.Partial("_DisplayPackageVulnerabilities")
                 }
 
-                @if (Model.IsPackageDeprecationEnabled && Model.DeprecationStatus != PackageDeprecationStatus.NotDeprecated)
+                @if (Model.ShowDetailsAndLinks)
                 {
-                    @Html.Partial("_DisplayPackageDeprecation")
-                }
+                    if (Model.IsPackageDeprecationEnabled && Model.DeprecationStatus != PackageDeprecationStatus.NotDeprecated)
+                    {
+                        @Html.Partial("_DisplayPackageDeprecation")
+                    }
 
-                @if (Model.IsPackageRenamesEnabled && Model.PackageRenames != null && Model.PackageRenames.Count != 0)
-                {
-                    @Html.Partial("_DisplayPackageRenames")
-                }
+                    if (Model.IsPackageRenamesEnabled && Model.PackageRenames != null && Model.PackageRenames.Count != 0)
+                    {
+                        @Html.Partial("_DisplayPackageRenames")
+                    }
 
-                @if (Model.Prerelease)
-                {
-                    @ViewHelpers.AlertInfo(
-                        @<text>
-                            This is a prerelease version of @(Model.Id).
-                        </text>
-                    )
-                }
-                @if (Model.NuGetVersion.HasMetadata)
-                {
-                    @ViewHelpers.AlertInfo(
-                        @<text>
-                            This package has a SemVer 2.0.0 package version: @(Model.FullVersion).
-                        </text>
-                    )
-                }
-                @if (Model.VersionRequestedWasNotFound)
-                {
-                    @ViewHelpers.AlertWarning(
-                        @<text>
-                            The specified version @Model.VersionRequested was not found. You have been taken to version @(Model.Version).
-                        </text>
-                    )
-                }
-                @if (Model.HasNewerRelease)
-                {
-                    @ViewHelpers.AlertInfo(
-                        @<text>
-                            There is a newer version of this package available.
-                            <br /> See the version list below for details.
-                        </text>
-                    )
-                }
-                else if (Model.HasNewerPrerelease)
-                {
-                    @ViewHelpers.AlertInfo(
-                        @<text>
-                            There is a newer prerelease version of this package available.
-                            <br /> See the version list below for details.
-                        </text>
-                    )
-                }
+                    if (Model.Prerelease)
+                    {
+                        @ViewHelpers.AlertInfo(
+                            @<text>
+                                This is a prerelease version of @(Model.Id).
+                            </text>
+                        )
+                    }
+                    
+                    if (Model.NuGetVersion.HasMetadata)
+                    {
+                        @ViewHelpers.AlertInfo(
+                            @<text>
+                                This package has a SemVer 2.0.0 package version: @(Model.FullVersion).
+                            </text>
+                        )
+                    }
+                    
+                    if (Model.VersionRequestedWasNotFound)
+                    {
+                        @ViewHelpers.AlertWarning(
+                            @<text>
+                                The specified version @Model.VersionRequested was not found. You have been taken to version @(Model.Version).
+                            </text>
+                        )
+                    }
+                    
+                    if (Model.HasNewerRelease)
+                    {
+                        @ViewHelpers.AlertInfo(
+                            @<text>
+                                There is a newer version of this package available.
+                                <br /> See the version list below for details.
+                            </text>
+                        )
+                    }
+                    else if (Model.HasNewerPrerelease)
+                    {
+                        @ViewHelpers.AlertInfo(
+                            @<text>
+                                There is a newer prerelease version of this package available.
+                                <br /> See the version list below for details.
+                            </text>
+                        )
+                    }
 
-                @if (Model.Listed && Model.IsIndexed.HasValue && !Model.IsIndexed.Value && Model.Available)
-                {
-                    @ViewHelpers.AlertWarning(
-                        @<text>
-                            <strong>This package has not been indexed yet.</strong> It will appear in search results
-                            and will be available for install/restore after indexing is complete.
-                        </text>
-                    )
+                    if (Model.Listed && Model.IsIndexed.HasValue && !Model.IsIndexed.Value && Model.Available)
+                    {
+                        @ViewHelpers.AlertWarning(
+                            @<text>
+                                <strong>This package has not been indexed yet.</strong> It will appear in search results
+                                and will be available for install/restore after indexing is complete.
+                            </text>
+                        )
+                    }
                 }
 
                 @if (Model.HasEmbeddedIcon && Model.ShowDetailsAndLinks && Model.IsIndexed.HasValue && !Model.IsIndexed.Value && (Model.Available || Model.Validating))
@@ -548,9 +555,10 @@
                     {
                         activeBodyTab = activeBodyTab ?? "readme";
                         <li role="presentation" class="active" id="show-readme-container">
-                            <a href="#readme-tab"
+                            <a href="#readme-body-tab"
                                role="tab"
                                data-toggle="tab"
+                               data-target="#readme-tab"
                                id="readme-body-tab"
                                class="body-@(Model.CanDisplayReadmeWarning && Model.CanDisplayPrivateMetadata? "warning-" : "")tab"
                                aria-controls="readme-tab"
@@ -572,9 +580,10 @@
                      {
                         activeBodyTab = activeBodyTab ?? "supportedframeworks";
                         <li role="presentation" id="show-supportedframeworks-container">
-                            <a href="#supportedframeworks-tab"
+                            <a href="#supportedframeworks-body-tab"
                                 role="tab"
                                 data-toggle="tab"
+                                data-target="#supportedframeworks-tab"
                                 id="supportedframeworks-body-tab"
                                 class="body-tab"
                                 aria-controls="supportedframeworks-tab"
@@ -588,9 +597,10 @@
 
                         activeBodyTab = activeBodyTab ?? "dependencies";
                         <li role="presentation">
-                            <a href="#dependencies-tab"
+                            <a href="#dependencies-body-tab"
                                role="tab"
                                data-toggle="tab"
+                               data-target="#dependencies-tab"
                                id="dependencies-body-tab"
                                class="body-tab"
                                aria-controls="dependencies-tab"
@@ -606,9 +616,10 @@
                     {
                         activeBodyTab = activeBodyTab ?? "usedby";
                         <li role="presentation">
-                            <a href="#usedby-tab"
+                            <a href="#usedby-body-tab"
                                role="tab"
                                data-toggle="tab"
+                               data-target="#usedby-tab"
                                id="usedby-body-tab"
                                class="body-tab"
                                aria-controls="usedby-tab"
@@ -622,9 +633,10 @@
 
                     @{ activeBodyTab = activeBodyTab ?? "versions"; }
                     <li role="presentation">
-                        <a href="#versions-tab"
+                        <a href="#versions-body-tab"
                            role="tab"
                            data-toggle="tab"
+                           data-target="#versions-tab"
                            id="versions-body-tab"
                            class="body-tab"
                            aria-controls="versions-tab"
@@ -639,10 +651,11 @@
                     {
                         activeBodyTab = activeBodyTab ?? "releasenotes";
                         <li role="presentation">
-                            <a href="#releasenotes-tab"
+                            <a href="#releasenotes-body-tab"
                                role="tab"
                                data-toggle="tab"
-                               id="release-body-tab"
+                               data-target="#releasenotes-tab"
+                               id="releasenotes-body-tab"
                                class="body-tab"
                                aria-controls="releasenotes-tab"
                                aria-selected="@(activeBodyTab == "releasenotes" ? "true" : "false")"

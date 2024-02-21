@@ -1,44 +1,131 @@
 ﻿@using String = NuGetGallery.Strings;
 @using NuGetGallery.Frameworks;
 @model PackageFrameworkCompatibilityBadges
+@{
+    var eventName = "search-selection";
+    if (ViewData.ContainsKey("eventName"))
+    {
+        eventName = ViewData["eventName"].ToStringOrNull();
+    }
+
+    // This view data will sometimes be null or missing. For example, the profile page uses this partial and should not
+    // emit search selection events.
+    int? itemIndex = null;
+    int parsedItemIndex;
+    if (ViewData.ContainsKey("itemIndex")
+        && int.TryParse(ViewData["itemIndex"].ToStringOrNull(), out parsedItemIndex))
+    {
+        itemIndex = parsedItemIndex;
+    }
+}
 
 <div class="framework framework-badges">
     @if (Model.Net != null)
     {
         <!-- .NET cannot be an empty version since the lowest version for this framework is "net5.0", if the package contains just "net" framework it will fall into .NET Framework badge instead.' -->
-        <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">.NET @Model.Net.GetBadgeVersion()</span>
+        <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+            @if (itemIndex.HasValue)
+            {
+                @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                @:data-badge-framework="@Model.Net.Framework.GetShortFolderName()" data-badge-is-computed="@Model.Net.IsComputed"
+            }>
+            <span class=@(Model.Net.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">
+                .NET @Model.Net.Framework.GetBadgeVersion()
+            </span>
+        </a>
     }
     @if (Model.NetCore != null)
     {
-        if (Model.NetCore.GetBadgeVersion().IsEmpty())
+        if (Model.NetCore.Framework.GetBadgeVersion().IsEmpty())
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">.NET Core</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetCore.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetCore.IsComputed"
+                }>
+                <span class=@(Model.NetCore.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">
+                    .NET Core
+                </span>
+            </a>
         }
         else
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">.NET Core @Model.NetCore.GetBadgeVersion()</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetCore.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetCore.IsComputed"
+                }>
+                <span class=@(Model.NetCore.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">
+                    .NET Core @Model.NetCore.Framework.GetBadgeVersion()
+                </span>
+            </a>
         }
     }
     @if (Model.NetStandard != null)
     {
-        if (Model.NetStandard.GetBadgeVersion().IsEmpty())
+        if (Model.NetStandard.Framework.GetBadgeVersion().IsEmpty())
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">.NET Standard</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetStandard.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetStandard.IsComputed"
+                }>
+                <span class=@(Model.NetStandard.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">
+                    .NET Standard
+                </span>
+            </a>
         }
         else
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">.NET Standard @Model.NetStandard.GetBadgeVersion()</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetStandard.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetStandard.IsComputed"
+                }>
+                <span class=@(Model.NetStandard.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">
+                    .NET Standard @Model.NetStandard.Framework.GetBadgeVersion()
+                </span>
+            </a>
         }
     }
     @if (Model.NetFramework != null)
     {
-        if (Model.NetFramework.GetBadgeVersion().IsEmpty())
+        if (Model.NetFramework.Framework.GetBadgeVersion().IsEmpty())
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">.NET Framework</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetFramework.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetFramework.IsComputed"
+                }>
+                <span class=@(Model.NetFramework.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_EmptyVersionTooltip" data-content="@String.SupportedFrameworks_EmptyVersionTooltip">
+                    .NET Framework
+                </span>
+            </a>
         }
         else
         {
-            <span class="framework-badge-asset" aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">.NET Framework @Model.NetFramework.GetBadgeVersion()</span>
+            <a href=@Url.FrameworksTab(Model.PackageId, Model.PackageVersion)
+                @if (itemIndex.HasValue)
+                {
+                     @:data-track="@eventName" data-track-value="@itemIndex" data-click-source="FrameworkBadge"
+                     @:data-package-id="@Model.PackageId" data-package-version="@Model.PackageVersion"
+                     @:data-badge-framework="@Model.NetFramework.Framework.GetShortFolderName()" data-badge-is-computed="@Model.NetFramework.IsComputed"
+                }>
+                <span class=@(Model.NetFramework.IsComputed ? "framework-badge-computed" : "framework-badge-asset") aria-label="@String.SupportedFrameworks_Tooltip" data-content="@String.SupportedFrameworks_Tooltip">
+                    .NET Framework @Model.NetFramework.Framework.GetBadgeVersion()
+                </span>
+            </a>
         }
     }
 </div>

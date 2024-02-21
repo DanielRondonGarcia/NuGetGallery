@@ -132,6 +132,18 @@
       "SiteAdmins": false,
       "Accounts": [],
       "Domains": []
+    },
+    "NuGetGallery.DisplayTfmBadges": {
+      "All": true,
+      "SiteAdmins": false,
+      "Accounts": [],
+      "Domains": []
+    },
+    "NuGetGallery.AdvancedFrameworkFiltering": {
+      "All": true,
+      "SiteAdmins": false,
+      "Accounts": [],
+      "Domains": []
     }
   }
 }

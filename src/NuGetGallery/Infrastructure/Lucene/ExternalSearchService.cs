@@ -64,6 +64,8 @@ namespace NuGetGallery.Infrastructure.Search
                 includePrerelease: filter.IncludePrerelease,
                 frameworks: filter.Frameworks,
                 tfms: filter.Tfms,
+                includeComputedFrameworks: filter.IncludeComputedFrameworks,
+                frameworkFilterMode: filter.FrameworkFilterMode,
                 packageType: filter.PackageType,
                 sortBy: filter.SortOrder,
                 skip: filter.Skip,
@@ -183,10 +185,13 @@ namespace NuGetGallery.Infrastructure.Search
                    })
                    .ToArray();
 
-            var frameworks =
-                doc.Value<JArray>("SupportedFrameworks")
-                   .Select(v => new PackageFramework() { TargetFramework = v.Value<string>() })
-                   .ToArray();
+            var frameworks = Array.Empty<PackageFramework>();
+            if (doc.Value<JArray>("Tfms") != null)
+            {
+                frameworks = doc.Value<JArray>("Tfms")
+                                   .Select(v => new PackageFramework() { TargetFramework = v.Value<string>() })
+                                   .ToArray();
+            }
 
             var reg = doc["PackageRegistration"];
             PackageRegistration registration = null;
